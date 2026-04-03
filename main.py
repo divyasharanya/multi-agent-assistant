@@ -5,9 +5,9 @@ Main FastAPI application entry point.
 """
 
 from dotenv import load_dotenv
-load_dotenv()  # ← This loads your .env file (GROQ_API_KEY)
-
+load_dotenv()
 from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
@@ -16,9 +16,6 @@ import uvicorn
 from database import init_db
 from primary_agent import PrimaryAgent
 
-# ─────────────────────────────────────────
-# App Setup
-# ─────────────────────────────────────────
 app = FastAPI(
     title="Multi-Agent Productivity Assistant",
     description="An AI system with multiple agents to manage tasks, schedules & notes",
@@ -33,10 +30,8 @@ app.add_middleware(
 )
 
 agent = PrimaryAgent()
+app.mount("/static", StaticFiles(directory="."), name="static")
 
-# ─────────────────────────────────────────
-# Request/Response Models
-# ─────────────────────────────────────────
 class ChatRequest(BaseModel):
     message: str
     user_id: Optional[str] = "default_user"
@@ -45,10 +40,6 @@ class ChatResponse(BaseModel):
     response: str
     agent_used: str
     actions_taken: list
-
-# ─────────────────────────────────────────
-# API Endpoints
-# ─────────────────────────────────────────
 
 @app.on_event("startup")
 async def startup():
@@ -86,8 +77,5 @@ def get_notes(user_id: str = "default_user"):
     na = NotesAgent()
     return na.get_all_notes(user_id)
 
-# ─────────────────────────────────────────
-# Run the server
-# ─────────────────────────────────────────
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
