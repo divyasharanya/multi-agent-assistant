@@ -3,6 +3,14 @@
 
 ---
 
+## 🌐 Live Demo
+- **Live App:** https://multi-agent-assistant-n3bq.onrender.com/static/frontend.html
+- **API:** https://multi-agent-assistant-n3bq.onrender.com
+- **API Docs:** https://multi-agent-assistant-n3bq.onrender.com/docs
+- **GitHub:** https://github.com/divyasharanya/multi-agent-assistant
+
+---
+
 ## 📌 What This Project Does
 
 A multi-agent AI system that helps users manage:
@@ -10,8 +18,7 @@ A multi-agent AI system that helps users manage:
 - 📅 **Calendar Events** (meetings, appointments)
 - 📝 **Notes** (ideas, memos, information)
 
-The user just types naturally in plain English. The **Primary Agent** (powered by Claude AI)
-automatically decides which **Sub-Agent** to call, performs the action, and responds.
+The user just types naturally in plain English. The **Primary Agent** (powered by Groq LLaMA) automatically decides which **Sub-Agent** to call, performs the action, and responds.
 
 ---
 
@@ -21,7 +28,7 @@ automatically decides which **Sub-Agent** to call, performs the action, and resp
 User Message
      │
      ▼
-Primary Agent (Claude AI)
+Primary Agent (Groq LLaMA)
      │ Classifies intent
      ├──► Task Agent      → SQLite (tasks table)
      ├──► Calendar Agent  → SQLite (events table)
@@ -35,18 +42,19 @@ FastAPI Response → Frontend UI
 
 ## 🚀 Setup Instructions (Step by Step)
 
-### Step 1: Get your Anthropic API Key
-1. Go to https://console.anthropic.com/
+### Step 1: Get your FREE Groq API Key
+1. Go to https://console.groq.com/
 2. Sign up / log in
-3. Click "API Keys" → "Create Key"
-4. Copy the key (starts with `sk-ant-...`)
+3. Click **"API Keys"** → **"Create Key"**
+4. Copy the key (starts with `gsk_...`)
 
 ### Step 2: Set up the project
 ```bash
-# 1. Navigate to the project folder
-cd multi_agent_assistant
+# 1. Clone the repository
+git clone https://github.com/divyasharanya/multi-agent-assistant.git
+cd multi-agent-assistant
 
-# 2. Create a virtual environment (keeps dependencies isolated)
+# 2. Create a virtual environment
 python -m venv venv
 
 # 3. Activate it
@@ -59,30 +67,24 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### Step 3: Add your API key
+### Step 3: Set your API key
 ```bash
-# Create a .env file
-cp .env.example .env
+# On Mac/Linux:
+export GROQ_API_KEY=your_key_here
 
-# Open .env and replace "your_api_key_here" with your actual key
-# The file should look like:
-# ANTHROPIC_API_KEY=sk-ant-api03-xxxxx...
+# On Windows:
+$env:GROQ_API_KEY="your_key_here"
 ```
 
 ### Step 4: Run the server
 ```bash
-# Set environment variable (Mac/Linux)
-export ANTHROPIC_API_KEY=your_key_here
-
-# Or on Windows:
-set ANTHROPIC_API_KEY=your_key_here
-
-# Start the server
 python main.py
 ```
 
 ### Step 5: Open the frontend
 Open `frontend.html` in your browser — that's it! 🎉
+
+Or visit: **http://localhost:8000/static/frontend.html**
 
 ---
 
@@ -104,14 +106,14 @@ Open `frontend.html` in your browser — that's it! 🎉
 ## 📁 Project Structure
 
 ```
-multi_agent_assistant/
+multi-agent-assistant/
 ├── main.py              ← FastAPI server, all API endpoints
 ├── primary_agent.py     ← Brain: routes messages to correct sub-agent
 ├── database.py          ← SQLite setup, creates tables
-├── frontend.html        ← Web UI (open in browser)
+├── frontend.html        ← Web UI
 ├── requirements.txt     ← Python packages needed
-├── .env.example         ← Template for your API key
 └── sub_agents/
+    ├── __init__.py
     ├── task_agent.py     ← Handles tasks/to-dos
     ├── calendar_agent.py ← Handles events/schedule
     └── notes_agent.py    ← Handles notes/memos
@@ -131,15 +133,16 @@ multi_agent_assistant/
 
 ### Example API call:
 ```bash
-curl -X POST http://localhost:8000/chat \
+curl -X POST https://multi-agent-assistant-n3bq.onrender.com/chat \
   -H "Content-Type: application/json" \
   -d '{"message": "Add task: submit hackathon project", "user_id": "me"}'
 ```
 
 ---
 
-## 🧪 Test the API directly
-Once the server is running, visit: **http://localhost:8000/docs**
+## 🧪 Test the API
+Visit: **https://multi-agent-assistant-n3bq.onrender.com/docs**
+
 This gives you an interactive Swagger UI to test all endpoints!
 
 ---
@@ -150,5 +153,6 @@ This gives you an interactive Swagger UI to test all endpoints!
 - [x] SQLite database for structured data ✅
 - [x] Multiple tools (task/calendar/notes) via agent routing ✅
 - [x] Multi-step workflows and task execution ✅
-- [x] Deployed as API-based system (FastAPI) ✅
+- [x] Deployed as API-based system (FastAPI on Render) ✅
 - [x] Frontend UI for demonstration ✅
+- [x] Live deployment with permanent URL ✅
