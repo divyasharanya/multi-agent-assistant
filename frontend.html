@@ -470,7 +470,7 @@
       setTimeout(() => { loadTasks(); loadEvents(); loadNotes(); }, 500);
     } catch (e) {
       typingEl.remove();
-      appendMsg("assistant", "⚠️ Could not connect to the server. Make sure your FastAPI server is running on port 8000!", "general", []);
+      appendMsg("assistant", "⚠️ Could not connect to the server. Error: " + e.message, "general", []);
     }
   }
 
