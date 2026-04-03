@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Agent Productivity Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a3d;
+    --accent: #7c6af7;
+    --accent2: #f76a8a;
+    --accent3: #6af7c8;
+    --text: #e8e8f0;
+    --text-dim: #7a7a9a;
+    --task: #f7b76a;
+    --calendar: #6ab4f7;
+    --notes: #a8f76a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 280px 1fr 280px;
+    grid-template-rows: auto 1fr;
+    gap: 0;
+  }
+
+  /* HEADER */
+  header {
+    grid-column: 1 / -1;
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.3rem;
+    letter-spacing: -0.02em;
+  }
+
+  .logo span { color: var(--accent); }
+
+  .agent-badges {
+    display: flex;
+    gap: 10px;
+  }
+
+  .badge {
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border: 1px solid;
+  }
+
+  .badge.task { color: var(--task); border-color: var(--task); background: rgba(247,183,106,0.08); }
+  .badge.calendar { color: var(--calendar); border-color: var(--calendar); background: rgba(106,180,247,0.08); }
+  .badge.notes { color: var(--notes); border-color: var(--notes); background: rgba(168,247,106,0.08); }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent3);
+    box-shadow: 0 0 8px var(--accent3);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* SIDEBAR LEFT - Tasks */
+  .sidebar-left {
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    overflow-y: auto;
+    background: var(--surface);
+  }
+
+  /* MAIN CHAT */
+  .chat-area {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 65px);
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .msg {
+    max-width: 80%;
+    animation: fadeUp 0.3s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg.user { align-self: flex-end; }
+  .msg.assistant { align-self: flex-start; }
+
+  .msg-bubble {
+    padding: 12px 16px;
+    border-radius: 16px;
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+
+  .msg.user .msg-bubble {
+    background: var(--accent);
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+
+  .msg.assistant .msg-bubble {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+  }
+
+  .msg-meta {
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .msg.user .msg-meta { justify-content: flex-end; }
+
+  .agent-tag {
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .agent-tag.task_agent { background: rgba(247,183,106,0.15); color: var(--task); }
+  .agent-tag.calendar_agent { background: rgba(106,180,247,0.15); color: var(--calendar); }
+  .agent-tag.notes_agent { background: rgba(168,247,106,0.15); color: var(--notes); }
+  .agent-tag.general { background: rgba(124,106,247,0.15); color: var(--accent); }
+
+  /* INPUT */
+  .input-area {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+  }
+
+  .input-wrap {
+    flex: 1;
+    position: relative;
+  }
+
+  textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.875rem;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+    max-height: 120px;
+    line-height: 1.5;
+  }
+
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--text-dim); }
+
+  .send-btn {
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    width: 44px;
+    height: 44px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.2s, transform 0.1s;
+    flex-shrink: 0;
+  }
+
+  .send-btn:hover { opacity: 0.85; }
+  .send-btn:active { transform: scale(0.95); }
+  .send-btn svg { width: 18px; height: 18px; fill: white; }
+
+  /* SIDEBAR RIGHT - Notes/Events */
+  .sidebar-right {
+    border-left: 1px solid var(--border);
+    padding: 24px 16px;
+    overflow-y: auto;
+    background: var(--surface);
+  }
+
+  /* Sidebar sections */
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .item-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: 0.78rem;
+    transition: border-color 0.2s;
+  }
+
+  .item-card:hover { border-color: var(--accent); }
+
+  .item-card .item-title {
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .item-card .item-sub {
+    color: var(--text-dim);
+    font-size: 0.72rem;
+  }
+
+  .priority-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    margin-right: 4px;
+  }
+
+  .priority-dot.high { background: var(--accent2); }
+  .priority-dot.medium { background: var(--task); }
+  .priority-dot.low { background: var(--accent3); }
+
+  .empty-state {
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    text-align: center;
+    padding: 20px 0;
+    font-style: italic;
+  }
+
+  /* Quick commands */
+  .quick-cmds {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 0 24px 12px;
+  }
+
+  .qcmd {
+    padding: 5px 12px;
+    border-radius: 100px;
+    font-size: 0.72rem;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    transition: all 0.2s;
+  }
+
+  .qcmd:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(124,106,247,0.08);
+  }
+
+  /* Loading */
+  .typing-indicator {
+    display: flex;
+    gap: 4px;
+    padding: 12px 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    border-bottom-left-radius: 4px;
+    width: fit-content;
+  }
+
+  .typing-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    animation: typingBounce 1.2s infinite;
+  }
+
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes typingBounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+  }
+
+  .refresh-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 8px;
+    color: var(--text-dim);
+    font-size: 0.7rem;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    transition: all 0.2s;
+    margin-bottom: 12px;
+    width: 100%;
+  }
+  .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⬡ <span>Multi-Agent</span> Assistant</div>
+  <div class="agent-badges">
+    <span class="badge task">📋 Task Agent</span>
+    <span class="badge calendar">📅 Calendar Agent</span>
+    <span class="badge notes">📝 Notes Agent</span>
+  </div>
+  <div class="status-dot" title="System Online"></div>
+</header>
+
+<!-- LEFT SIDEBAR: Tasks -->
+<aside class="sidebar-left">
+  <div class="section-title">Tasks</div>
+  <button class="refresh-btn" onclick="loadTasks()">↻ refresh</button>
+  <div id="task-list"><div class="empty-state">No tasks yet</div></div>
+
+  <br>
+  <div class="section-title">Quick Add</div>
+  <div style="font-size:0.72rem; color: var(--text-dim); line-height:1.8;">
+    Try saying:<br>
+    <span style="color:var(--task)">"Add task: review slides"</span><br>
+    <span style="color:var(--calendar)">"Schedule meeting tomorrow 3pm"</span><br>
+    <span style="color:var(--notes)">"Note: API key is in .env file"</span><br>
+    <span style="color:var(--text-dim)">"Show my tasks"</span>
+  </div>
+</aside>
+
+<!-- MAIN CHAT -->
+<main class="chat-area">
+  <div class="messages" id="messages">
+    <div class="msg assistant">
+      <div class="msg-bubble">
+        👋 Hi! I'm your <strong>Multi-Agent Productivity Assistant</strong>.<br><br>
+        I have 3 specialized agents ready:<br>
+        🟡 <strong>Task Agent</strong> — manage your to-dos<br>
+        🔵 <strong>Calendar Agent</strong> — schedule events<br>
+        🟢 <strong>Notes Agent</strong> — save ideas & notes<br><br>
+        Just type naturally and I'll route your request to the right agent!
+      </div>
+      <div class="msg-meta">Primary Agent</div>
+    </div>
+  </div>
+
+  <div class="quick-cmds">
+    <button class="qcmd" onclick="sendQuick('Show my tasks')">show tasks</button>
+    <button class="qcmd" onclick="sendQuick('Show my events')">show calendar</button>
+    <button class="qcmd" onclick="sendQuick('Show my notes')">show notes</button>
+    <button class="qcmd" onclick="sendQuick('Add task: Complete hackathon project by tomorrow, high priority')">add task</button>
+    <button class="qcmd" onclick="sendQuick('Schedule team standup on 2025-04-10 at 10am')">add event</button>
+    <button class="qcmd" onclick="sendQuick('Note: Remember to add MCP tool integration for bonus points')">add note</button>
+  </div>
+
+  <div class="input-area">
+    <div class="input-wrap">
+      <textarea id="user-input" placeholder="Type a message... (Shift+Enter for new line)" rows="1"
+        onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+    </div>
+    <button class="send-btn" onclick="sendMessage()">
+      <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+</main>
+
+<!-- RIGHT SIDEBAR: Calendar + Notes -->
+<aside class="sidebar-right">
+  <div class="section-title">Calendar</div>
+  <button class="refresh-btn" onclick="loadEvents()">↻ refresh</button>
+  <div id="event-list"><div class="empty-state">No events yet</div></div>
+
+  <br>
+  <div class="section-title">Notes</div>
+  <button class="refresh-btn" onclick="loadNotes()">↻ refresh</button>
+  <div id="note-list"><div class="empty-state">No notes yet</div></div>
+</aside>
+
+<script>
+  const API = "http://localhost:8000";
+  const USER_ID = "default_user";
+
+  // ── Send message ──────────────────────────────
+  async function sendMessage() {
+    const input = document.getElementById("user-input");
+    const text = input.value.trim();
+    if (!text) return;
+
+    appendMsg("user", text, "", "");
+    input.value = "";
+    autoResize(input);
+
+    const typingEl = appendTyping();
+
+    try {
+      const res = await fetch(`${API}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, user_id: USER_ID })
+      });
+      const data = await res.json();
+      typingEl.remove();
+      appendMsg("assistant", data.response, data.agent_used, data.actions_taken);
+      // Refresh sidebars after any action
+      setTimeout(() => { loadTasks(); loadEvents(); loadNotes(); }, 500);
+    } catch (e) {
+      typingEl.remove();
+      appendMsg("assistant", "⚠️ Could not connect to the server. Make sure your FastAPI server is running on port 8000!", "general", []);
+    }
+  }
+
+  function sendQuick(text) {
+    document.getElementById("user-input").value = text;
+    sendMessage();
+  }
+
+  function handleKey(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function autoResize(el) {
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 120) + "px";
+  }
+
+  // ── Append message bubble ─────────────────────
+  function appendMsg(role, text, agent, actions) {
+    const container = document.getElementById("messages");
+    const div = document.createElement("div");
+    div.className = `msg ${role}`;
+
+    const agentTag = agent && role === "assistant"
+      ? `<span class="agent-tag ${agent}">${agent.replace("_", " ")}</span>` : "";
+    const actionsText = actions && actions.length
+      ? `<span style="color:var(--text-dim)">→ ${actions.join(", ")}</span>` : "";
+
+    div.innerHTML = `
+      <div class="msg-bubble">${text.replace(/\n/g, "<br>")}</div>
+      <div class="msg-meta">${agentTag} ${actionsText}</div>
+    `;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+    return div;
+  }
+
+  function appendTyping() {
+    const container = document.getElementById("messages");
+    const div = document.createElement("div");
+    div.className = "msg assistant";
+    div.innerHTML = `<div class="typing-indicator">
+      <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+    </div>`;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+    return div;
+  }
+
+  // ── Load sidebar data ─────────────────────────
+  async function loadTasks() {
+    try {
+      const res = await fetch(`${API}/tasks?user_id=${USER_ID}`);
+      const tasks = await res.json();
+      const el = document.getElementById("task-list");
+      if (!tasks.length) { el.innerHTML = '<div class="empty-state">No tasks yet</div>'; return; }
+      el.innerHTML = tasks.map(t => `
+        <div class="item-card">
+          <div class="item-title">
+            <span class="priority-dot ${t.priority}"></span>${t.title}
+            ${t.status === "done" ? "✓" : ""}
+          </div>
+          <div class="item-sub">${t.due_date ? "Due: " + t.due_date : "No due date"} · ${t.priority}</div>
+        </div>`).join("");
+    } catch(e) {}
+  }
+
+  async function loadEvents() {
+    try {
+      const res = await fetch(`${API}/events?user_id=${USER_ID}`);
+      const events = await res.json();
+      const el = document.getElementById("event-list");
+      if (!events.length) { el.innerHTML = '<div class="empty-state">No events yet</div>'; return; }
+      el.innerHTML = events.map(e => `
+        <div class="item-card">
+          <div class="item-title">📅 ${e.title}</div>
+          <div class="item-sub">${e.event_date} ${e.event_time ? "· " + e.event_time : ""} ${e.location ? "· " + e.location : ""}</div>
+        </div>`).join("");
+    } catch(e) {}
+  }
+
+  async function loadNotes() {
+    try {
+      const res = await fetch(`${API}/notes?user_id=${USER_ID}`);
+      const notes = await res.json();
+      const el = document.getElementById("note-list");
+      if (!notes.length) { el.innerHTML = '<div class="empty-state">No notes yet</div>'; return; }
+      el.innerHTML = notes.map(n => `
+        <div class="item-card">
+          <div class="item-title">📝 ${n.title}</div>
+          <div class="item-sub">${n.content.substring(0, 60)}...</div>
+        </div>`).join("");
+    } catch(e) {}
+  }
+
+  // Load on page open
+  loadTasks(); loadEvents(); loadNotes();
+</script>
+</body>
+</html>
